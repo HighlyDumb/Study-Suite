@@ -13,6 +13,7 @@ const CACHE_NAME = 'study-suite-' + CACHE_VERSION;
 // The app shell: enough to open the app from a cold cache (e.g. offline,
 // or right after install before the network has been hit once).
 const CORE_ASSETS = [
+  './',
   './index.html',
   './manifest.json',
   './icons/icon-192.png',
@@ -64,7 +65,7 @@ self.addEventListener('fetch', (event) => {
           caches.open(CACHE_NAME).then((cache) => cache.put(req, copy));
           return res;
         })
-        .catch(() => caches.match(req).then((cached) => cached || caches.match('./index.html')))
+        .catch(() => caches.match(req).then((cached) => cached || caches.match('./index.html') || caches.match('./')))
     );
     return;
   }
