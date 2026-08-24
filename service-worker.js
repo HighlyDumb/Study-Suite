@@ -1,7 +1,7 @@
 /* Study Suite — service worker.
    ============================================================
    IMPORTANT: bump CACHE_VERSION every time you ship a change to
-   study_suite.html (or any other cached file). This is what forces old
+   index.html (or any other cached file). This is what forces old
    cached copies to be thrown out on the next visit — without it, people
    who installed the app could get stuck on a stale version indefinitely,
    since a service worker's whole job is to serve cached files instead of
@@ -13,7 +13,7 @@ const CACHE_NAME = 'study-suite-' + CACHE_VERSION;
 // The app shell: enough to open the app from a cold cache (e.g. offline,
 // or right after install before the network has been hit once).
 const CORE_ASSETS = [
-  './study_suite.html',
+  './index.html',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png',
@@ -64,7 +64,7 @@ self.addEventListener('fetch', (event) => {
           caches.open(CACHE_NAME).then((cache) => cache.put(req, copy));
           return res;
         })
-        .catch(() => caches.match(req).then((cached) => cached || caches.match('./study_suite.html')))
+        .catch(() => caches.match(req).then((cached) => cached || caches.match('./index.html')))
     );
     return;
   }
