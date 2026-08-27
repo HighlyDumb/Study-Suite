@@ -7,7 +7,7 @@
    since a service worker's whole job is to serve cached files instead of
    hitting the network.
    ============================================================ */
-const CACHE_VERSION = 'v3';
+const CACHE_VERSION = 'v4';
 const CACHE_NAME = 'study-suite-' + CACHE_VERSION;
 
 // The app shell: enough to open the app from a cold cache (e.g. offline,
