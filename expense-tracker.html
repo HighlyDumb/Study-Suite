@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Ledger">
+<meta name="theme-color" content="#FAF9F5">
+<title>Ledger</title>
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./icons/icon-192.png">
+<link rel="icon" href="./icons/icon-192.png">
+<style>
+  html, body{ margin:0; padding:0; background: #EFEDE6; }
+  #ledger-root{ padding: 0; min-height: 100vh; }
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+  *{ box-sizing: border-box; }
+  :root{
+    --paper: #FAF9F5; --ink: #211F1B; --ink-fade: #8C877C; --line: #DAD5C8;
+    --accent-red: #B23A2E; --accent-gold: #B8863B; --accent-teal: #3B7A82; --accent-green: #3F6B4A;
+  }
+
+  #ledger-root{
+    font-family: 'Inter', system-ui, sans-serif; color: var(--ink); max-width: none; margin: 0;
+    -webkit-font-smoothing: antialiased; position: relative;
+  }
+
+  .lg-card{
+    background: var(--paper); border: none; border-radius: 0;
+    box-shadow: none; overflow: hidden; position: relative; min-height: 100vh;
+  }
+  .lg-card::before{
+    content:""; position:absolute; top:0; left:0; right:0; height: 4px;
+    background: linear-gradient(90deg, var(--accent-red), var(--accent-gold), var(--accent-teal), var(--accent-green));
+  }
+
+  .lg-banner{
+    display:none; align-items:center; justify-content:space-between; gap:10px;
+    padding: 10px 16px; background: #F1E4C8; border-bottom: 1px solid var(--line);
+    font-size: 12px; color: var(--ink);
+  }
+  .lg-banner-actions{ display:flex; gap:8px; flex-shrink:0; }
+  .lg-banner-actions button{
+    font-family:'Inter',sans-serif; font-size: 11px; font-weight: 700; border:none; border-radius: 999px;
+    padding: 6px 11px; cursor:pointer;
+  }
+  #lg-banner-send{ background: var(--ink); color: var(--paper); }
+  #lg-banner-dismiss{ background: transparent; color: var(--ink-fade); text-decoration: underline; }
+
+  .lg-header{ padding: 24px 46px 14px; text-align: center; position: relative; }
+  .lg-settings-btn{
+    position: absolute; top: 14px; right: 14px; width: 32px; height: 32px; border-radius: 50%;
+    border: 1px solid var(--line); background: #fff; color: var(--ink-fade); font-size: 15px;
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+  }
+  .lg-install-btn{
+    position: absolute; top: 14px; left: 14px; font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.04em; color: #fff;
+    background: var(--accent-green); border: none; border-radius: 999px; padding: 8px 12px; cursor: pointer;
+  }
+  .lg-settings-btn:active{ color: var(--ink); }
+  .lg-eyebrow{
+    font-size: 11px; letter-spacing: 0.16em; color: var(--ink-fade); text-transform: uppercase;
+    font-weight: 600; margin-bottom: 14px;
+  }
+  .lg-total-label{ font-size: 12px; color: var(--ink-fade); letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 2px; }
+  .lg-total{
+    font-family: 'IBM Plex Mono', monospace; font-size: 40px; font-weight: 700;
+    letter-spacing: -0.01em; line-height: 1.15; word-break: break-word;
+  }
+  .lg-total.zero{ color: var(--ink-fade); }
+  .lg-sub{ margin-top: 6px; font-size: 12px; color: var(--ink-fade); font-family: 'IBM Plex Mono', monospace; }
+
+  .lg-search-wrap{ padding: 0 18px 12px; position: relative; }
+  .lg-search{
+    width: 100%; font-family: 'Inter', sans-serif; font-size: 14px;
+    padding: 10px 34px 10px 12px; border: 1px solid var(--line); border-radius: 8px;
+    background: #fff; color: var(--ink); outline: none;
+  }
+  .lg-search:focus{ border-color: var(--accent-teal); box-shadow: 0 0 0 3px rgba(59,122,130,0.12); }
+  .lg-search-clear{
+    position: absolute; right: 26px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; color: var(--ink-fade); font-size: 16px; cursor: pointer;
+    padding: 4px; line-height: 1; display: none;
+  }
+
+  .lg-tabs{
+    display:flex; gap:6px; padding: 0 14px 14px; overflow-x: auto;
+    -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  }
+  .lg-tabs::-webkit-scrollbar{ display:none; }
+  .lg-tab{
+    flex: 0 0 auto; font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 600;
+    letter-spacing: 0.03em; padding: 11px 16px; border-radius: 999px; border: 1px solid var(--line);
+    background: #fff; color: var(--ink-fade); cursor: pointer; white-space: nowrap;
+  }
+  .lg-tab.active{ background: var(--ink); border-color: var(--ink); color: var(--paper); }
+
+  .lg-monthpick-row{
+    display:flex; align-items:center; gap:8px; padding: 0 18px 14px;
+  }
+  .lg-monthpick-label{
+    font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-fade);
+    font-weight: 600; white-space: nowrap; flex-shrink: 0;
+  }
+  .lg-monthpick-input{
+    font-family: 'IBM Plex Mono', monospace; font-size: 12px; padding: 7px 9px; border: 1px solid var(--line);
+    border-radius: 6px; background: #fff; color: var(--ink); flex: 1; min-width: 0;
+  }
+  .lg-monthpick-clear{
+    background: none; border: none; color: var(--ink-fade); font-size: 16px; cursor: pointer;
+    padding: 2px 4px; line-height: 1; flex-shrink: 0;
+  }
+
+  .lg-breakdown{ padding: 4px 18px 16px; }
+  .lg-breakdown-title{
+    font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-fade);
+    font-weight: 600; margin-bottom: 8px;
+  }
+  .lg-brow{ display:flex; align-items:center; gap:8px; margin-bottom: 7px; }
+  .lg-bname{ font-size: 11px; color: var(--ink); width: 66px; flex-shrink:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .lg-btrack{ flex:1; height: 6px; background: var(--line); border-radius: 3px; overflow:hidden; }
+  .lg-bfill{ height:100%; border-radius:3px; transition: width 0.3s ease; }
+  .lg-bamt{ font-family:'IBM Plex Mono', monospace; font-size: 11px; color: var(--ink-fade); width: 64px; text-align:right; flex-shrink:0; }
+
+  .lg-perf{ height: 1px; margin: 0 18px; border-top: 2px dashed var(--line); position: relative; }
+  .lg-perf::before, .lg-perf::after{
+    content:""; position:absolute; top:-6px; width:12px; height:12px;
+    background:#fff; border-radius:50%; box-shadow: 0 0 0 1px var(--line) inset;
+  }
+  .lg-perf::before{ left:-6px; }
+  .lg-perf::after{ right:-6px; }
+
+  .lg-form{ padding: 16px 18px; display: grid; gap: 12px; }
+  .lg-row{ display:flex; gap:8px; }
+  .lg-field{ flex:1; display:flex; flex-direction:column; gap:4px; min-width:0; }
+  .lg-field label{ font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-fade); font-weight:600; }
+  .lg-field input{
+    font-family: 'IBM Plex Mono', monospace; font-size: 16px; padding: 10px 9px; border: 1px solid var(--line);
+    border-radius: 6px; background: #fff; color: var(--ink); outline: none; width: 100%;
+  }
+  .lg-field input:focus{ border-color: var(--accent-teal); box-shadow: 0 0 0 3px rgba(59,122,130,0.12); }
+
+  .lg-cat-label-row{ display:flex; justify-content:space-between; align-items:center; }
+  .lg-edit-toggle{
+    font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--accent-teal);
+    background: none; border: none; cursor: pointer; font-weight: 600; padding: 2px 0;
+  }
+
+  .lg-chips{ display:flex; flex-wrap:wrap; gap:6px; }
+  .lg-chip{
+    position: relative; font-family:'Inter',sans-serif; font-size: 12px; font-weight: 600; padding: 7px 12px;
+    border-radius: 999px; border: 1.5px solid var(--line); background:#fff; color: var(--ink-fade);
+    cursor:pointer; display:flex; align-items:center; gap:5px;
+  }
+  .lg-chip .lg-chip-dot{ width:7px; height:7px; border-radius:50%; }
+  .lg-chip.active{ color: var(--ink); border-color: currentColor; background: rgba(0,0,0,0.03); }
+  .lg-chip-add{ border-style: dashed; color: var(--ink-fade); }
+  .lg-chip-del{
+    background: var(--accent-red); color: #fff; border-radius: 50%; width: 15px; height: 15px;
+    font-size: 11px; display:flex; align-items:center; justify-content:center; line-height:1;
+    margin-left: 2px; cursor: pointer;
+  }
+
+  .lg-add-btn{
+    font-family: 'IBM Plex Mono', monospace; font-weight: 700; font-size: 13px; letter-spacing: 0.08em;
+    color: #fff; background: var(--accent-red); border: none; border-radius: 7px; padding: 17px 14px; font-size: 14px;
+    cursor: pointer; transition: transform 0.08s ease, background 0.15s ease;
+  }
+  .lg-add-btn:active{ transform: scale(0.97); }
+
+  .lg-list{ padding: 6px 18px 18px; display:flex; flex-direction:column; }
+  .lg-date-head{
+    font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--ink-fade);
+    letter-spacing: 0.06em; margin: 16px 0 6px; text-transform: uppercase;
+  }
+  .lg-item{
+    display:flex; align-items:center; gap:8px; padding: 11px 0;
+    border-bottom: 1px dotted var(--line); animation: lg-feed 0.28s ease;
+  }
+  @keyframes lg-feed{ from{ opacity:0; transform: translateY(-8px); } to{ opacity:1; transform: translateY(0); } }
+  .lg-dot{ width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+  .lg-desc{ flex:1; font-size: 14px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .lg-desc mark{ background: rgba(184,134,59,0.28); color: inherit; border-radius: 2px; }
+  .lg-cat{ font-size: 10px; color: var(--ink-fade); text-transform: uppercase; letter-spacing: 0.05em; flex-shrink:0; display:none; }
+  .lg-amt{ font-family: 'IBM Plex Mono', monospace; font-weight:600; font-size: 14px; flex-shrink:0; }
+  .lg-del{
+    background:none; border:none; color: var(--ink-fade); font-size: 20px; cursor:pointer;
+    padding: 6px 4px; line-height:1; flex-shrink:0;
+  }
+  .lg-del:active{ color: var(--accent-red); }
+
+  .lg-empty{ text-align:center; padding: 30px 10px; color: var(--ink-fade); font-size: 13px; line-height:1.6; }
+
+  .lg-footer{ display:flex; justify-content:center; align-items:center; padding: 12px 18px 20px; }
+  .lg-count{ font-size: 11px; color: var(--ink-fade); font-family: 'IBM Plex Mono', monospace; }
+
+  .lg-loading{ text-align:center; padding: 40px 20px; color: var(--ink-fade); font-family: 'IBM Plex Mono', monospace; font-size: 13px; }
+
+  /* Settings modal */
+  .lg-modal-backdrop{
+    position: absolute; inset: 0; background: rgba(33,31,27,0.4);
+    display: none; align-items: flex-end; justify-content: center; z-index: 50; border-radius: 10px;
+  }
+  .lg-modal{
+    background: var(--paper); width: 100%; border-radius: 16px 16px 0 0;
+    padding: 18px 18px 24px; box-shadow: 0 -10px 30px rgba(0,0,0,0.2);
+    max-height: 85%; overflow-y: auto;
+  }
+  .lg-modal-head{
+    display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px;
+    font-family: 'IBM Plex Mono', monospace; font-weight: 700; font-size: 15px;
+  }
+  .lg-modal-close{ background:none; border:none; font-size: 22px; color: var(--ink-fade); cursor:pointer; line-height:1; }
+  .lg-modal-section{ margin-bottom: 18px; }
+  .lg-modal-label{
+    font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-fade);
+    font-weight: 600; margin-bottom: 8px;
+  }
+  .lg-modal-btn{
+    display:block; width: 100%; text-align: left; font-family: 'Inter', sans-serif; font-size: 14px;
+    font-weight: 600; padding: 12px 14px; border-radius: 8px; border: 1px solid var(--line);
+    background: #fff; color: var(--ink); cursor: pointer; margin-bottom: 8px; box-sizing: border-box;
+  }
+  .lg-modal-btn:active{ background: rgba(0,0,0,0.03); }
+  .lg-modal-btn-danger{ color: var(--accent-red); border-color: rgba(178,58,46,0.3); }
+  .lg-modal-input{
+    display:block; width: 100%; font-family: 'IBM Plex Mono', monospace; font-size: 14px;
+    padding: 10px 12px; border-radius: 8px; border: 1px solid var(--line); background: #fff;
+    color: var(--ink); box-sizing: border-box; margin-bottom: 8px;
+  }
+  .lg-import-status{ font-size: 12px; color: var(--ink-fade); margin-top: 6px; font-family: 'IBM Plex Mono', monospace; }
+  .lg-modal-hint{ font-size: 11px; color: var(--ink-fade); margin-top: 4px; line-height: 1.5; }
+
+  @media (min-width: 420px){ .lg-cat{ display:inline; } }
+</style>
+</head>
+<body>
+<div id="ledger-root">
+  <div class="lg-card">
+    <div class="lg-banner" id="lg-banner">
+      <span id="lg-banner-text"></span>
+      <div class="lg-banner-actions">
+        <button id="lg-banner-send">Send</button>
+        <button id="lg-banner-dismiss">Dismiss</button>
+      </div>
+    </div>
+
+    <div class="lg-header">
+      <button class="lg-install-btn" id="lg-install-btn" style="display:none">Install App</button>
+      <button class="lg-settings-btn" id="lg-settings-btn" aria-label="Settings">⚙</button>
+      <div class="lg-eyebrow">Ledger · Personal Expense Tracker</div>
+      <div class="lg-total-label" id="lg-total-label">Spent this month</div>
+      <div class="lg-total" id="lg-total">···</div>
+      <div class="lg-sub" id="lg-sub"></div>
+    </div>
+
+    <div class="lg-search-wrap">
+      <input id="lg-search" class="lg-search" type="text" placeholder="Search descriptions…" />
+      <button class="lg-search-clear" id="lg-search-clear" aria-label="Clear search">×</button>
+    </div>
+
+    <div class="lg-tabs" id="lg-tabs">
+      <button class="lg-tab" data-period="week">Week</button>
+      <button class="lg-tab active" data-period="month">Month</button>
+      <button class="lg-tab" data-period="3m">3 Months</button>
+      <button class="lg-tab" data-period="6m">6 Months</button>
+      <button class="lg-tab" data-period="1y">1 Year</button>
+      <button class="lg-tab" data-period="all">All Time</button>
+    </div>
+
+    <div class="lg-monthpick-row">
+      <span class="lg-monthpick-label">Or jump to a month</span>
+      <input type="month" id="lg-monthpick" class="lg-monthpick-input"/>
+      <button class="lg-monthpick-clear" id="lg-monthpick-clear" style="display:none" aria-label="Clear month filter">×</button>
+    </div>
+
+    <div id="lg-breakdown" class="lg-breakdown" style="display:none">
+      <div class="lg-breakdown-title">By category</div>
+      <div id="lg-brows"></div>
+    </div>
+
+    <div class="lg-perf"></div>
+
+    <div class="lg-form">
+      <div class="lg-row">
+        <div class="lg-field" style="flex:2">
+          <label>Description</label>
+          <input id="lg-desc" type="text" placeholder="Coffee, rent, bus ticket…" maxlength="60"/>
+        </div>
+        <div class="lg-field">
+          <label>Amount (₹)</label>
+          <input id="lg-amount" type="number" inputmode="decimal" step="0.01" min="0" placeholder="0.00"/>
+        </div>
+      </div>
+      <div class="lg-field">
+        <div class="lg-cat-label-row">
+          <label>Category</label>
+          <button type="button" class="lg-edit-toggle" id="lg-edit-toggle">edit</button>
+        </div>
+        <div class="lg-chips" id="lg-chips"></div>
+      </div>
+      <div class="lg-row">
+        <div class="lg-field">
+          <label>Date</label>
+          <input id="lg-date" type="date"/>
+        </div>
+      </div>
+      <button class="lg-add-btn" id="lg-add">+ ADD ENTRY</button>
+    </div>
+
+    <div class="lg-perf"></div>
+
+    <div id="lg-list-wrap">
+      <div class="lg-loading">Loading your ledger…</div>
+    </div>
+
+    <div class="lg-footer">
+      <span class="lg-count" id="lg-count"></span>
+    </div>
+
+    <div class="lg-modal-backdrop" id="lg-modal">
+      <div class="lg-modal">
+        <div class="lg-modal-head">
+          <span>Settings</span>
+          <button class="lg-modal-close" id="lg-modal-close" aria-label="Close">×</button>
+        </div>
+        <div class="lg-modal-section">
+          <div class="lg-modal-label">Backup</div>
+          <button class="lg-modal-btn" id="lg-export-all">Export all data (CSV)</button>
+          <label class="lg-modal-btn" for="lg-import-file" style="text-align:center; cursor:pointer;">Import from CSV</label>
+          <input type="file" id="lg-import-file" accept=".csv,text/csv" style="display:none"/>
+          <div class="lg-modal-hint">Imports a CSV with columns: Date, Description, Category, Amount. New categories are added automatically.</div>
+          <div class="lg-import-status" id="lg-import-status"></div>
+        </div>
+        <div class="lg-modal-section">
+          <div class="lg-modal-label">Monthly email</div>
+          <input type="email" id="lg-email-input" class="lg-modal-input" placeholder="your@email.com"/>
+          <input type="month" id="lg-email-month" class="lg-modal-input"/>
+          <button class="lg-modal-btn" id="lg-email-send">Compose monthly email</button>
+          <div class="lg-modal-hint">Opens your email app with that month's entries and total pre-filled. A website can't send email on its own in the background — you (or a reminder you set) still need to tap this once a month. We'll nudge you here when a new month starts.</div>
+        </div>
+        <div class="lg-modal-section">
+          <div class="lg-modal-label">Danger zone</div>
+          <button class="lg-modal-btn lg-modal-btn-danger" id="lg-clear-modal">Clear all entries</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const DEFAULT_CATEGORIES = ['Food','Transport','Bills','Shopping','Health','Other'];
+  const PALETTE = ['var(--accent-red)','var(--accent-gold)','var(--accent-teal)','var(--accent-green)'];
+
+  const PERIOD_DAYS = { week: 7, month: 30, '3m': 90, '6m': 180, '1y': 365, all: Infinity };
+  const PERIOD_LABELS = {
+    week: 'Spent this week', month: 'Spent this month', '3m': 'Spent last 3 months',
+    '6m': 'Spent last 6 months', '1y': 'Spent this year', all: 'Spent all time'
+  };
+
+  const STORAGE_KEY = 'ledger_expenses';
+  const PERIOD_KEY = 'ledger_period';
+  const CATEGORIES_KEY = 'ledger_categories';
+  const EMAIL_KEY = 'ledger_email';
+  const LAST_EMAILED_KEY = 'ledger_last_emailed_month';
+  const DISMISSED_KEY = 'ledger_dismissed_month';
+
+  let expenses = [];
+  let period = 'month';
+  let CATEGORIES = [...DEFAULT_CATEGORIES];
+  let selectedCategory = CATEGORIES[0];
+  let editMode = false;
+  let searchQuery = '';
+  let monthFilter = '';
+  let lastFiltered = [];
+  let savedEmail = '';
+
+  const $ = (id) => document.getElementById(id);
+  const listWrap = $('lg-list-wrap');
+  const totalEl = $('lg-total');
+  const subEl = $('lg-sub');
+  const labelEl = $('lg-total-label');
+  const countEl = $('lg-count');
+  const dateInput = $('lg-date');
+  const tabsWrap = $('lg-tabs');
+  const chipsWrap = $('lg-chips');
+  const breakdownWrap = $('lg-breakdown');
+  const browsEl = $('lg-brows');
+  const searchInput = $('lg-search');
+  const searchClearBtn = $('lg-search-clear');
+  const editToggleBtn = $('lg-edit-toggle');
+  const modal = $('lg-modal');
+  const importStatus = $('lg-import-status');
+  const monthPickInput = $('lg-monthpick');
+  const monthPickClear = $('lg-monthpick-clear');
+  const emailInput = $('lg-email-input');
+  const emailMonthInput = $('lg-email-month');
+  const banner = $('lg-banner');
+  const bannerText = $('lg-banner-text');
+
+  const todayStr = () => new Date().toISOString().slice(0,10);
+  dateInput.value = todayStr();
+
+  // --- Storage helpers: swap these two bodies to change backend (Claude storage vs localStorage) ---
+  function getStore(key){
+    try{ return localStorage.getItem(key); }
+    catch(e){ console.error('localStorage read failed', e); return null; }
+  }
+  function setStore(key, value){
+    try{ localStorage.setItem(key, value); }
+    catch(e){ console.error('localStorage write failed', e); }
+  }
+
+  function categoryColor(name){
+    const i = CATEGORIES.indexOf(name);
+    if(i === -1) return 'var(--ink-fade)';
+    return PALETTE[i % PALETTE.length];
+  }
+
+  function buildChips(){
+    editToggleBtn.textContent = editMode ? 'done' : 'edit';
+    const chipHtml = CATEGORIES.map(c => `
+      <button type="button" class="lg-chip${c===selectedCategory?' active':''}" data-cat="${c}">
+        <span class="lg-chip-dot" style="background:${categoryColor(c)}"></span>${escapeHtml(c)}
+        ${editMode ? `<span class="lg-chip-del" data-del-cat="${escapeHtml(c)}">×</span>` : ''}
+      </button>`).join('');
+    const addChip = `<button type="button" class="lg-chip lg-chip-add" id="lg-chip-add">+ Add</button>`;
+    chipsWrap.innerHTML = chipHtml + addChip;
+  }
+
+  chipsWrap.addEventListener('click', (e) => {
+    const delBtn = e.target.closest('[data-del-cat]');
+    if(delBtn){ removeCategory(delBtn.getAttribute('data-del-cat')); return; }
+    const addBtn = e.target.closest('#lg-chip-add');
+    if(addBtn){ addCategory(); return; }
+    const chip = e.target.closest('.lg-chip[data-cat]');
+    if(chip && !editMode){ selectedCategory = chip.getAttribute('data-cat'); buildChips(); }
+  });
+
+  editToggleBtn.addEventListener('click', () => { editMode = !editMode; buildChips(); });
+
+  function addCategory(){
+    const name = prompt('New category name:');
+    if(name === null) return;
+    const trimmed = name.trim();
+    if(!trimmed) return;
+    if(CATEGORIES.some(c => c.toLowerCase() === trimmed.toLowerCase())){ alert('That category already exists.'); return; }
+    CATEGORIES.push(trimmed);
+    selectedCategory = trimmed;
+    saveCategories();
+    buildChips();
+  }
+
+  function removeCategory(name){
+    if(CATEGORIES.length <= 1){ alert('You need at least one category.'); return; }
+    if(!confirm(`Remove "${name}"? Past entries keep this label, but you can't pick it for new ones.`)) return;
+    CATEGORIES = CATEGORIES.filter(c => c !== name);
+    if(selectedCategory === name) selectedCategory = CATEGORIES[0];
+    saveCategories();
+    buildChips();
+    render();
+  }
+
+  function fmt(n){
+    return '₹' + n.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2});
+  }
+
+  function fmtDateHead(d){
+    const today = todayStr();
+    const yest = new Date(Date.now() - 86400000).toISOString().slice(0,10);
+    if(d === today) return 'Today';
+    if(d === yest) return 'Yesterday';
+    return new Date(d + 'T00:00:00').toLocaleDateString('en-IN', {month:'short', day:'numeric', year:'numeric'});
+  }
+
+  function monthLabel(ym){
+    const [y,m] = ym.split('-').map(Number);
+    return new Date(y, m-1, 1).toLocaleDateString('en-IN', {month:'long', year:'numeric'});
+  }
+
+  function withinPeriod(dateStr){
+    if(period === 'all') return true;
+    const days = PERIOD_DAYS[period];
+    const cutoff = Date.now() - days * 86400000;
+    const t = new Date(dateStr + 'T00:00:00').getTime();
+    return t >= cutoff;
+  }
+
+  function withinFilter(dateStr){
+    if(monthFilter) return dateStr.slice(0,7) === monthFilter;
+    return withinPeriod(dateStr);
+  }
+
+  function matchesSearch(e){
+    if(!searchQuery) return true;
+    return e.description.toLowerCase().includes(searchQuery);
+  }
+
+  function prevMonthStr(){
+    const d = new Date();
+    d.setDate(1);
+    d.setMonth(d.getMonth() - 1);
+    return d.toISOString().slice(0,7);
+  }
+
+  async function checkReminderBanner(){
+    const pm = prevMonthStr();
+    const hasEntries = expenses.some(e => e.date.slice(0,7) === pm);
+    if(!hasEntries) return;
+    const lastEmailed = await getStore(LAST_EMAILED_KEY);
+    const dismissed = await getStore(DISMISSED_KEY);
+    if(lastEmailed === pm || dismissed === pm) return;
+    bannerText.textContent = `📧 ${monthLabel(pm)} summary ready to send`;
+    banner.style.display = 'flex';
+    banner.dataset.month = pm;
+  }
+
+  $('lg-banner-send').addEventListener('click', async () => {
+    const m = banner.dataset.month;
+    emailMonthInput.value = m;
+    await composeEmail(m);
+    await setStore(LAST_EMAILED_KEY, m);
+    banner.style.display = 'none';
+  });
+  $('lg-banner-dismiss').addEventListener('click', async () => {
+    const m = banner.dataset.month;
+    await setStore(DISMISSED_KEY, m);
+    banner.style.display = 'none';
+  });
+
+  async function load(){
+    const raw = await getStore(STORAGE_KEY);
+    try{ expenses = raw ? JSON.parse(raw) : []; } catch(e){ expenses = []; }
+
+    const p = await getStore(PERIOD_KEY);
+    if(p && PERIOD_DAYS[p]) period = p;
+
+    const c = await getStore(CATEGORIES_KEY);
+    if(c){
+      try{
+        const parsed = JSON.parse(c);
+        if(Array.isArray(parsed) && parsed.length) CATEGORIES = parsed;
+      }catch(e){}
+    }
+
+    savedEmail = (await getStore(EMAIL_KEY)) || '';
+    emailInput.value = savedEmail;
+    emailMonthInput.value = prevMonthStr();
+
+    selectedCategory = CATEGORIES[0];
+    setActiveTab();
+    buildChips();
+    render();
+    checkReminderBanner();
+  }
+
+  async function save(){ await setStore(STORAGE_KEY, JSON.stringify(expenses)); }
+  async function savePeriod(){ await setStore(PERIOD_KEY, period); }
+  async function saveCategories(){ await setStore(CATEGORIES_KEY, JSON.stringify(CATEGORIES)); }
+
+  emailInput.addEventListener('change', async () => {
+    savedEmail = emailInput.value.trim();
+    await setStore(EMAIL_KEY, savedEmail);
+  });
+
+  function setActiveTab(){
+    tabsWrap.querySelectorAll('.lg-tab').forEach(btn => {
+      btn.classList.toggle('active', btn.getAttribute('data-period') === period);
+    });
+  }
+
+  function renderBreakdown(filtered){
+    if(filtered.length === 0){ breakdownWrap.style.display = 'none'; return; }
+    const totals = {};
+    filtered.forEach(e => { totals[e.category] = (totals[e.category]||0) + e.amount; });
+    const rows = Object.keys(totals).map(cat => ({ cat, amt: totals[cat] })).sort((a,b) => b.amt - a.amt);
+    const max = rows[0].amt;
+    browsEl.innerHTML = rows.map(r => `
+      <div class="lg-brow">
+        <div class="lg-bname">${escapeHtml(r.cat)}</div>
+        <div class="lg-btrack"><div class="lg-bfill" style="width:${(r.amt/max*100).toFixed(0)}%; background:${categoryColor(r.cat)}"></div></div>
+        <div class="lg-bamt">${fmt(r.amt)}</div>
+      </div>`).join('');
+    breakdownWrap.style.display = 'block';
+  }
+
+  function highlightMatch(desc){
+    if(!searchQuery) return escapeHtml(desc);
+    const idx = desc.toLowerCase().indexOf(searchQuery);
+    if(idx === -1) return escapeHtml(desc);
+    const before = escapeHtml(desc.slice(0, idx));
+    const match = escapeHtml(desc.slice(idx, idx + searchQuery.length));
+    const after = escapeHtml(desc.slice(idx + searchQuery.length));
+    return before + '<mark>' + match + '</mark>' + after;
+  }
+
+  function render(){
+    const filtered = expenses.filter(e => withinFilter(e.date) && matchesSearch(e));
+    const periodTotal = filtered.reduce((s,e) => s + e.amount, 0);
+
+    labelEl.textContent = monthFilter ? `Spent in ${monthLabel(monthFilter)}` : (searchQuery ? `Matching "${searchQuery}"` : PERIOD_LABELS[period]);
+    totalEl.textContent = fmt(periodTotal);
+    totalEl.className = 'lg-total' + (periodTotal === 0 ? ' zero' : '');
+    subEl.textContent = filtered.length ? (filtered.length + ' entr' + (filtered.length===1?'y':'ies') + ' in view') : '';
+    countEl.textContent = expenses.length ? (expenses.length + ' total entr' + (expenses.length===1?'y':'ies')) : '';
+
+    renderBreakdown(filtered);
+
+    const sorted = [...filtered].sort((a,b) => (b.date+b.id).localeCompare(a.date+a.id));
+    lastFiltered = sorted;
+
+    if(filtered.length === 0){
+      let msg;
+      if(expenses.length === 0) msg = 'No entries yet.<br/>Add your first one above to start the tape.';
+      else if(searchQuery) msg = `No matches for "${escapeHtml(searchQuery)}".`;
+      else if(monthFilter) msg = `Nothing in ${monthLabel(monthFilter)}.`;
+      else msg = 'Nothing in this period.<br/>Try a wider range or add an entry.';
+      listWrap.innerHTML = '<div class="lg-empty">' + msg + '</div>';
+      return;
+    }
+
+    const groups = {};
+    sorted.forEach(e => { groups[e.date] = groups[e.date] || []; groups[e.date].push(e); });
+
+    let html = '';
+    Object.keys(groups).sort().reverse().forEach(date => {
+      html += '<div class="lg-date-head">' + fmtDateHead(date) + '</div>';
+      groups[date].forEach(e => {
+        html += `
+          <div class="lg-item" data-id="${e.id}">
+            <span class="lg-dot" style="background:${categoryColor(e.category)}"></span>
+            <span class="lg-desc">${highlightMatch(e.description)}</span>
+            <span class="lg-cat">${escapeHtml(e.category)}</span>
+            <span class="lg-amt">${fmt(e.amount)}</span>
+            <button class="lg-del" data-del="${e.id}" aria-label="Delete">×</button>
+          </div>`;
+      });
+    });
+    listWrap.innerHTML = '<div class="lg-list">' + html + '</div>';
+
+    listWrap.querySelectorAll('[data-del]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-del');
+        const entry = expenses.find(x => x.id === id);
+        const label = entry ? `"${entry.description}" (${fmt(entry.amount)})` : 'this entry';
+        if(confirm(`Delete ${label}? This cannot be undone.`)) removeEntry(id);
+      });
+    });
+  }
+
+  function escapeHtml(s){
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  function csvEscape(field){
+    const s = String(field);
+    if(/[",\n]/.test(s)) return '"' + s.replace(/"/g,'""') + '"';
+    return s;
+  }
+
+  function exportAllCSV(){
+    if(expenses.length === 0){ importStatus.textContent = 'Nothing to export yet.'; return; }
+    const rows = [['Date','Description','Category','Amount (INR)']];
+    [...expenses].sort((a,b) => a.date.localeCompare(b.date)).forEach(e =>
+      rows.push([e.date, e.description, e.category, e.amount.toFixed(2)]));
+    const csv = rows.map(r => r.map(csvEscape).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ledger-all-${todayStr()}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function parseCSV(text){
+    const rows = [];
+    let row = [], field = '', inQuotes = false;
+    for(let i = 0; i < text.length; i++){
+      const c = text[i];
+      if(inQuotes){
+        if(c === '"'){
+          if(text[i+1] === '"'){ field += '"'; i++; }
+          else inQuotes = false;
+        } else field += c;
+      } else {
+        if(c === '"') inQuotes = true;
+        else if(c === ','){ row.push(field); field = ''; }
+        else if(c === '\n' || c === '\r'){
+          if(c === '\r' && text[i+1] === '\n') i++;
+          row.push(field); rows.push(row); row = []; field = '';
+        } else field += c;
+      }
+    }
+    if(field.length || row.length){ row.push(field); rows.push(row); }
+    return rows.filter(r => r.some(f => f.trim() !== ''));
+  }
+
+  function normalizeDate(raw){
+    if(/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+    const d = new Date(raw);
+    if(isNaN(d.getTime())) return null;
+    return d.toISOString().slice(0,10);
+  }
+
+  function importCSV(file){
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const rows = parseCSV(String(reader.result));
+      if(rows.length < 1){ importStatus.textContent = 'File looks empty.'; return; }
+
+      let startIdx = 0;
+      let colDate = 0, colDesc = 1, colCat = 2, colAmt = 3;
+      const header = rows[0].map(h => h.trim().toLowerCase());
+      const looksLikeHeader = header.some(h => h.includes('date') || h.includes('desc') || h.includes('amount') || h.includes('categ'));
+      if(looksLikeHeader){
+        startIdx = 1;
+        header.forEach((h,i) => {
+          if(h.includes('date')) colDate = i;
+          else if(h.includes('desc')) colDesc = i;
+          else if(h.includes('categ')) colCat = i;
+          else if(h.includes('amount')) colAmt = i;
+        });
+      }
+
+      let imported = 0, skipped = 0;
+      for(let i = startIdx; i < rows.length; i++){
+        const r = rows[i];
+        const rawDate = (r[colDate] || '').trim();
+        const desc = (r[colDesc] || '').trim();
+        const cat = (r[colCat] || 'Other').trim() || 'Other';
+        const amt = parseFloat((r[colAmt] || '').replace(/[^\d.-]/g, ''));
+
+        const date = normalizeDate(rawDate);
+        if(!date || !desc || isNaN(amt) || amt <= 0){ skipped++; continue; }
+
+        if(!CATEGORIES.some(c => c.toLowerCase() === cat.toLowerCase())){
+          CATEGORIES.push(cat);
+        }
+
+        expenses.push({
+          id: Date.now().toString(36) + Math.random().toString(36).slice(2,6) + i,
+          description: desc, amount: amt, category: cat, date: date
+        });
+        imported++;
+      }
+
+      importStatus.textContent = `Imported ${imported} entr${imported===1?'y':'ies'}${skipped ? `, skipped ${skipped} invalid row${skipped===1?'':'s'}` : ''}.`;
+      buildChips();
+      render();
+      await save();
+      await saveCategories();
+    };
+    reader.onerror = () => { importStatus.textContent = 'Could not read that file.'; };
+    reader.readAsText(file);
+  }
+
+  async function composeEmail(ym){
+    const monthEntries = expenses.filter(e => e.date.slice(0,7) === ym).sort((a,b) => a.date.localeCompare(b.date));
+    const total = monthEntries.reduce((s,e) => s + e.amount, 0);
+    const label = monthLabel(ym);
+
+    let body = `Ledger — ${label} Expense Summary\n\n`;
+    if(monthEntries.length === 0){
+      body += 'No entries recorded this month.\n';
+    } else {
+      monthEntries.forEach(e => {
+        body += `${e.date}  ${e.description} (${e.category})  ${fmt(e.amount)}\n`;
+      });
+    }
+    body += `\nTotal spent in ${label}: ${fmt(total)}\n`;
+
+    const subject = `Ledger — ${label} Expense Summary`;
+    const to = savedEmail || '';
+    const mailto = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.location.href = mailto;
+  }
+
+  $('lg-email-send').addEventListener('click', () => {
+    const m = emailMonthInput.value || prevMonthStr();
+    composeEmail(m);
+  });
+
+  async function addEntry(){
+    const descInput = $('lg-desc');
+    const amountInput = $('lg-amount');
+    const desc = descInput.value.trim();
+    const amount = parseFloat(amountInput.value);
+    const date = dateInput.value || todayStr();
+
+    if(!desc || isNaN(amount) || amount <= 0){
+      const addBtn = $('lg-add');
+      addBtn.style.background = 'var(--ink-fade)';
+      setTimeout(() => addBtn.style.background = '', 300);
+      return;
+    }
+
+    expenses.push({
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+      description: desc, amount: amount, category: selectedCategory, date: date
+    });
+
+    descInput.value = '';
+    amountInput.value = '';
+    descInput.focus();
+
+    render();
+    await save();
+  }
+
+  async function removeEntry(id){
+    expenses = expenses.filter(e => e.id !== id);
+    render();
+    await save();
+  }
+
+  function openModal(){ importStatus.textContent = ''; modal.style.display = 'flex'; }
+  function closeModal(){ modal.style.display = 'none'; }
+
+  $('lg-settings-btn').addEventListener('click', openModal);
+  $('lg-modal-close').addEventListener('click', closeModal);
+  modal.addEventListener('click', (e) => { if(e.target === modal) closeModal(); });
+
+  $('lg-export-all').addEventListener('click', exportAllCSV);
+  $('lg-import-file').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if(file) importCSV(file);
+    e.target.value = '';
+  });
+  $('lg-clear-modal').addEventListener('click', async () => {
+    if(expenses.length === 0) return;
+    if(confirm(`Clear all ${expenses.length} entries? This cannot be undone.`)){
+      expenses = [];
+      render();
+      await save();
+      closeModal();
+    }
+  });
+
+  $('lg-add').addEventListener('click', addEntry);
+  $('lg-desc').addEventListener('keydown', e => { if(e.key === 'Enter') addEntry(); });
+  $('lg-amount').addEventListener('keydown', e => { if(e.key === 'Enter') addEntry(); });
+
+  searchInput.addEventListener('input', () => {
+    searchQuery = searchInput.value.trim().toLowerCase();
+    searchClearBtn.style.display = searchQuery ? 'block' : 'none';
+    render();
+  });
+  searchClearBtn.addEventListener('click', () => {
+    searchInput.value = '';
+    searchQuery = '';
+    searchClearBtn.style.display = 'none';
+    render();
+  });
+
+  monthPickInput.addEventListener('change', () => {
+    monthFilter = monthPickInput.value;
+    monthPickClear.style.display = monthFilter ? 'block' : 'none';
+    render();
+  });
+  monthPickClear.addEventListener('click', () => {
+    monthPickInput.value = '';
+    monthFilter = '';
+    monthPickClear.style.display = 'none';
+    render();
+  });
+
+  tabsWrap.addEventListener('click', (e) => {
+    const btn = e.target.closest('.lg-tab');
+    if(!btn) return;
+    period = btn.getAttribute('data-period');
+    monthFilter = '';
+    monthPickInput.value = '';
+    monthPickClear.style.display = 'none';
+    setActiveTab();
+    render();
+    savePeriod();
+  });
+
+  load();
+
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js').catch(err => console.error('SW registration failed', err));
+    });
+  }
+
+  // Custom install prompt: Chrome only fires this when it considers the page
+  // installable, but doesn't always show its own banner. We show our own button instead.
+  let deferredInstallPrompt = null;
+  const installBtn = $('lg-install-btn');
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    installBtn.style.display = 'block';
+  });
+  installBtn.addEventListener('click', async () => {
+    if(!deferredInstallPrompt) return;
+    installBtn.style.display = 'none';
+    deferredInstallPrompt.prompt();
+    await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+  });
+  window.addEventListener('appinstalled', () => {
+    installBtn.style.display = 'none';
+  });
+})();
+</script>
+</body>
+</html>
